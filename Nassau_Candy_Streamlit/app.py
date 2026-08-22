@@ -106,24 +106,24 @@ def load_data():
               errors="coerce"
           )
 
-    df["Ship Date"] = pd.to_datetime(
-        df["Ship Date"],
-        errors="coerce"
-    )
+          df["Ship Date"] = pd.to_datetime(
+              df["Ship Date"],
+              errors="coerce"
+          )
 
     # Calculate Shipping Lead Time
-    df["Shipping Lead Time"] = (
-        df["Ship Date"] - df["Order Date"]
-    ).dt.days
+          df["Shipping Lead Time"] = (
+              df["Ship Date"] - df["Order Date"]
+          ).dt.days
 
     # Remove invalid lead times
-    df = df[
-        df["Shipping Lead Time"].notna()
-    ]
+          df = df[
+              df["Shipping Lead Time"].notna()
+          ]
 
-    df = df[
-        df["Shipping Lead Time"] >= 0
-    ]
+          df = df[
+              df["Shipping Lead Time"] >= 0
+          ]
 
     # Factory mapping
     factory_mapping = {
