@@ -101,10 +101,10 @@ def load_data():
           return None
 
     # Convert dates
-    df["Order Date"] = pd.to_datetime(
-        df["Order Date"],
-        errors="coerce"
-    )
+          df["Order Date"] = pd.to_datetime(
+              df["Order Date"],
+              errors="coerce"
+          )
 
     df["Ship Date"] = pd.to_datetime(
         df["Ship Date"],
