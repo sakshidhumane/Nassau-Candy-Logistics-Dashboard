@@ -75,15 +75,32 @@ st.markdown("""
 # LOAD DATA
 # ============================================================
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
 FILE_NAME = "Nassau_Candy_Final_Analytical_Dataset_Corrected.xlsx"
+FILE_PATH = BASE_DIR / FILE_NAME
 
 @st.cache_data
-def load_data():
+  def load_data():
+      try:
+          if not FILE_PATH.exists():
+              st.error(f"Excel file not found: {FILE_PATH}")
+              return None
 
-    df = pd.read_excel(
-        FILE_NAME,
-        sheet_name="Cleaned_Data"
-    )
+          excel_file = pd.ExcelFile(FILE_PATH)
+          st.write("Available sheets:", excel_file.sheet_names)
+
+          df = pd.read_excel(
+              FILE_PATH,
+              sheet_name="Cleaned_Data"
+          )
+
+          return df
+
+      except Exception as e:
+          st.error(f"Excel loading error: {e}")
+          return None
 
     # Convert dates
     df["Order Date"] = pd.to_datetime(
