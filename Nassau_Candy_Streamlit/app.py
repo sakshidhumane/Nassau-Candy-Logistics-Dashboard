@@ -80,7 +80,7 @@ FILE_NAME = "Nassau_Candy_Final_Analytical_Dataset_Corrected.xlsx"
 FILE_PATH = BASE_DIR / FILE_NAME
 
 @st.cache_data
-  def load_data():
+def load_data():
       try:
           if not FILE_PATH.exists():
               st.error(f"Excel file not found: {FILE_PATH}")
