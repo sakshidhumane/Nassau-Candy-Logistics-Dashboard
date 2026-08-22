@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
+
+
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -14,118 +15,102 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
 # ============================================================
 # CUSTOM CSS
 # ============================================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-.main {
-    background-color: #f5f7fb;
-}
+    .main {
+        background-color: #f5f7fb;
+    }
 
-.block-container {
-    padding-top: 1.5rem;
-}
+    .block-container {
+        padding-top: 1.5rem;
+    }
 
-.dashboard-title {
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
+    .dashboard-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
 
-.dashboard-subtitle {
-    color: #6b7280;
-    font-size: 15px;
-    margin-bottom: 25px;
-}
+    .dashboard-subtitle {
+        color: #6b7280;
+        font-size: 15px;
+        margin-bottom: 25px;
+    }
 
-.kpi-card {
-    background-color: white;
-    padding: 18px;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-}
+    .section-title {
+        font-size: 22px;
+        font-weight: 650;
+        margin-top: 25px;
+        margin-bottom: 12px;
+    }
 
-.kpi-title {
-    font-size: 14px;
-    color: #6b7280;
-}
-
-.kpi-value {
-    font-size: 27px;
-    font-weight: 700;
-    margin-top: 5px;
-}
-
-.section-title {
-    font-size: 22px;
-    font-weight: 650;
-    margin-top: 25px;
-    margin-bottom: 12px;
-}
-
-</style>
-""", unsafe_allow_html=True)
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
 # LOAD DATA
 # ============================================================
 
-BASE_DIR = Path(__file__).resolve().parent
 FILE_NAME = "Nassau_Candy_Final_Analytical_Dataset_Corrected.xlsx"
+
+# Always look for the Excel file in the same folder as app.py
+BASE_DIR = Path(__file__).resolve().parent
 FILE_PATH = BASE_DIR / FILE_NAME
+
 
 @st.cache_data
 def load_data():
-      try:
-          if not FILE_PATH.exists():
-              st.error(f"Excel file not found: {FILE_PATH}")
-              return None
 
-          excel_file = pd.ExcelFile(FILE_PATH)
-          st.write("Available sheets:", excel_file.sheet_names)
+    df = pd.read_excel(
+        FILE_PATH,
+        sheet_name="Cleaned_Data"
+    )
 
-          df = pd.read_excel(
-              FILE_PATH,
-              sheet_name="Cleaned_Data"
-          )
-
-          return df
-
-      except Exception as e:
-          st.error(f"Excel loading error: {e}")
-          return None
-
+    # --------------------------------------------------------
     # Convert dates
-          df["Order Date"] = pd.to_datetime(
-              df["Order Date"],
-              errors="coerce"
-          )
+    # --------------------------------------------------------
 
-          df["Ship Date"] = pd.to_datetime(
-              df["Ship Date"],
-              errors="coerce"
-          )
+    df["Order Date"] = pd.to_datetime(
+        df["Order Date"],
+        errors="coerce"
+    )
 
+    df["Ship Date"] = pd.to_datetime(
+        df["Ship Date"],
+        errors="coerce"
+    )
+
+    # --------------------------------------------------------
     # Calculate Shipping Lead Time
-          df["Shipping Lead Time"] = (
-              df["Ship Date"] - df["Order Date"]
-          ).dt.days
+    # --------------------------------------------------------
+
+    df["Shipping Lead Time"] = (
+        df["Ship Date"] - df["Order Date"]
+    ).dt.days
 
     # Remove invalid lead times
-          df = df[
-              df["Shipping Lead Time"].notna()
-          ]
+    df = df[
+        df["Shipping Lead Time"].notna()
+    ].copy()
 
-          df = df[
-              df["Shipping Lead Time"] >= 0
-          ]
+    df = df[
+        df["Shipping Lead Time"] >= 0
+    ].copy()
 
-    # Factory mapping
+    # --------------------------------------------------------
+    # Factory Mapping
+    # --------------------------------------------------------
+
     factory_mapping = {
 
         "Wonka Bar - Nutty Crunch Surprise":
@@ -176,12 +161,17 @@ def load_data():
 
     if "Factory" not in df.columns:
 
-        df["Factory"] = df["Product Name"].map(
-            factory_mapping
+        df["Factory"] = (
+            df["Product Name"]
+            .map(factory_mapping)
         )
 
     return df
 
+
+# ============================================================
+# LOAD DATA WITH ERROR HANDLING
+# ============================================================
 
 try:
 
@@ -194,9 +184,10 @@ except Exception as e:
     )
 
     st.info(
-       "Make sure Nassau_Candy_Final_Analytical_Dataset_Corrected.xlsx "
-       "is in the same folder as app.py."
-) 
+        f"Excel file expected here:\n\n"
+        f"{FILE_PATH}\n\n"
+        f"Error: {e}"
+    )
 
     st.stop()
 
@@ -227,7 +218,10 @@ st.markdown(
 
 st.sidebar.header("🔎 Dashboard Filters")
 
-# Date filter
+
+# ------------------------------------------------------------
+# Date Filter
+# ------------------------------------------------------------
 
 min_date = df["Order Date"].min().date()
 max_date = df["Order Date"].max().date()
@@ -239,10 +233,15 @@ date_range = st.sidebar.date_input(
     max_value=max_date
 )
 
-# Region filter
+
+# ------------------------------------------------------------
+# Region Filter
+# ------------------------------------------------------------
 
 regions = sorted(
-    df["Region"].dropna().unique()
+    df["Region"]
+    .dropna()
+    .unique()
 )
 
 selected_regions = st.sidebar.multiselect(
@@ -251,10 +250,15 @@ selected_regions = st.sidebar.multiselect(
     default=regions
 )
 
-# State filter
+
+# ------------------------------------------------------------
+# State Filter
+# ------------------------------------------------------------
 
 states = sorted(
-    df["State/Province"].dropna().unique()
+    df["State/Province"]
+    .dropna()
+    .unique()
 )
 
 selected_states = st.sidebar.multiselect(
@@ -262,10 +266,15 @@ selected_states = st.sidebar.multiselect(
     states
 )
 
-# Factory filter
+
+# ------------------------------------------------------------
+# Factory Filter
+# ------------------------------------------------------------
 
 factories = sorted(
-    df["Factory"].dropna().unique()
+    df["Factory"]
+    .dropna()
+    .unique()
 )
 
 selected_factories = st.sidebar.multiselect(
@@ -273,10 +282,15 @@ selected_factories = st.sidebar.multiselect(
     factories
 )
 
-# Ship mode filter
+
+# ------------------------------------------------------------
+# Ship Mode Filter
+# ------------------------------------------------------------
 
 ship_modes = sorted(
-    df["Ship Mode"].dropna().unique()
+    df["Ship Mode"]
+    .dropna()
+    .unique()
 )
 
 selected_ship_modes = st.sidebar.multiselect(
@@ -285,14 +299,24 @@ selected_ship_modes = st.sidebar.multiselect(
     default=ship_modes
 )
 
-# Lead-time threshold
 
-max_lead = int(
-    min(
-        max(df["Shipping Lead Time"].max(), 1),
-        5000
+# ------------------------------------------------------------
+# Lead Time Threshold
+# ------------------------------------------------------------
+
+max_lead_value = df[
+    "Shipping Lead Time"
+].max()
+
+if pd.isna(max_lead_value):
+    max_lead = 1
+else:
+    max_lead = int(
+        min(
+            max(max_lead_value, 1),
+            5000
+        )
     )
-)
 
 default_threshold = min(
     1200,
@@ -314,7 +338,10 @@ lead_threshold = st.sidebar.slider(
 
 filtered_df = df.copy()
 
-# Date filter
+
+# ------------------------------------------------------------
+# Date Filter
+# ------------------------------------------------------------
 
 if len(date_range) == 2:
 
@@ -327,15 +354,23 @@ if len(date_range) == 2:
     )
 
     filtered_df = filtered_df[
-        (filtered_df["Order Date"] >= start_date)
+        (
+            filtered_df["Order Date"]
+            >= start_date
+        )
         &
-        (filtered_df["Order Date"] <= end_date)
+        (
+            filtered_df["Order Date"]
+            <= end_date
+        )
     ]
 
 
-# Region filter
+# ------------------------------------------------------------
+# Region Filter
+# ------------------------------------------------------------
 
-if selected_regions:  
+if selected_regions:
 
     filtered_df = filtered_df[
         filtered_df["Region"].isin(
@@ -344,7 +379,9 @@ if selected_regions:
     ]
 
 
-# State filter
+# ------------------------------------------------------------
+# State Filter
+# ------------------------------------------------------------
 
 if selected_states:
 
@@ -355,7 +392,9 @@ if selected_states:
     ]
 
 
-# Factory filter
+# ------------------------------------------------------------
+# Factory Filter
+# ------------------------------------------------------------
 
 if selected_factories:
 
@@ -366,7 +405,9 @@ if selected_factories:
     ]
 
 
-# Ship mode filter
+# ------------------------------------------------------------
+# Ship Mode Filter
+# ------------------------------------------------------------
 
 if selected_ship_modes:
 
@@ -377,7 +418,9 @@ if selected_ship_modes:
     ]
 
 
-# Delay flag
+# ------------------------------------------------------------
+# Delay Flag
+# ------------------------------------------------------------
 
 filtered_df["Delayed"] = (
     filtered_df["Shipping Lead Time"]
@@ -427,12 +470,14 @@ avg_cost = (
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
+
 with col1:
 
     st.metric(
         "Total Shipments",
         f"{total_shipments:,}"
     )
+
 
 with col2:
 
@@ -441,6 +486,7 @@ with col2:
         f"{avg_lead_time:.1f} days"
     )
 
+
 with col3:
 
     st.metric(
@@ -448,12 +494,14 @@ with col3:
         f"{delay_rate:.1f}%"
     )
 
+
 with col4:
 
     st.metric(
         "Routes",
         f"{unique_routes:,}"
     )
+
 
 with col5:
 
@@ -506,6 +554,7 @@ with tab1:
                 as_index=False
             )
             .agg(
+
                 Total_Shipments=(
                     "Order ID",
                     "count"
@@ -554,7 +603,9 @@ with tab1:
             + route_group["State/Province"]
         )
 
-        # Efficiency score
+        # ----------------------------------------------------
+        # Efficiency Score
+        # ----------------------------------------------------
 
         min_time = route_group[
             "Average_Lead_Time"
@@ -592,7 +643,7 @@ with tab1:
             )
 
         # ----------------------------------------------------
-        # TOP AND BOTTOM ROUTES
+        # Top and Bottom Routes
         # ----------------------------------------------------
 
         col1, col2 = st.columns(2)
@@ -613,6 +664,7 @@ with tab1:
             )
             .head(10)
         )
+
 
         with col1:
 
@@ -649,6 +701,7 @@ with tab1:
                 use_container_width=True
             )
 
+
         with col2:
 
             st.markdown(
@@ -683,7 +736,7 @@ with tab1:
 
 
         # ----------------------------------------------------
-        # ROUTE TABLE
+        # Route Table
         # ----------------------------------------------------
 
         st.markdown(
@@ -708,19 +761,19 @@ with tab1:
             display_routes.style.format(
                 {
                     "Average_Lead_Time":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Median_Lead_Time":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Lead_Time_Variability":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Delay_Frequency_%":
-                        "{:.2f}%",
+                    "{:.2f}%",
 
                     "Route_Efficiency_Score":
-                        "{:.1f}"
+                    "{:.1f}"
                 }
             ),
             use_container_width=True,
@@ -753,6 +806,7 @@ with tab2:
                 as_index=False
             )
             .agg(
+
                 Total_Shipments=(
                     "Order ID",
                     "count"
@@ -788,17 +842,16 @@ with tab2:
             * 100
         )
 
-        # ----------------------------------------------------
-        # STATE MAP
-        # ----------------------------------------------------
-
         st.markdown(
             "### 🇺🇸 Average Shipping Lead Time by State"
         )
 
-        # State name conversion
+        # ----------------------------------------------------
+        # State Abbreviations
+        # ----------------------------------------------------
 
         state_abbreviations = {
+
             "Alabama": "AL",
             "Alaska": "AK",
             "Arizona": "AZ",
@@ -879,7 +932,7 @@ with tab2:
                 },
                 labels={
                     "Average_Lead_Time":
-                        "Avg Lead Time"
+                    "Avg Lead Time"
                 }
             )
 
@@ -901,7 +954,7 @@ with tab2:
 
 
         # ----------------------------------------------------
-        # BOTTLENECK ANALYSIS
+        # Geographic Bottleneck Analysis
         # ----------------------------------------------------
 
         st.markdown(
@@ -920,13 +973,15 @@ with tab2:
             (
                 state_group[
                     "Total_Shipments"
-                ] >= median_volume
+                ]
+                >= median_volume
             )
             &
             (
                 state_group[
                     "Average_Lead_Time"
-                ] >= median_lead
+                ]
+                >= median_lead
             )
         ].sort_values(
             "Average_Lead_Time",
@@ -939,13 +994,13 @@ with tab2:
                 bottlenecks.style.format(
                     {
                         "Average_Lead_Time":
-                            "{:.2f}",
+                        "{:.2f}",
 
                         "Median_Lead_Time":
-                            "{:.2f}",
+                        "{:.2f}",
 
                         "Delay_Frequency_%":
-                            "{:.2f}%"
+                        "{:.2f}%"
                     }
                 ),
                 use_container_width=True
@@ -984,6 +1039,7 @@ with tab3:
                 as_index=False
             )
             .agg(
+
                 Total_Shipments=(
                     "Order ID",
                     "count"
@@ -1047,10 +1103,11 @@ with tab3:
 
 
         # ----------------------------------------------------
-        # CHARTS
+        # Charts
         # ----------------------------------------------------
 
         col1, col2 = st.columns(2)
+
 
         with col1:
 
@@ -1117,7 +1174,7 @@ with tab3:
 
 
         # ----------------------------------------------------
-        # COST VS LEAD TIME
+        # Cost vs Shipping Time
         # ----------------------------------------------------
 
         st.markdown(
@@ -1136,10 +1193,10 @@ with tab3:
             ],
             labels={
                 "Average_Lead_Time":
-                    "Average Lead Time (Days)",
+                "Average Lead Time (Days)",
 
                 "Average_Cost":
-                    "Average Cost"
+                "Average Cost"
             }
         )
 
@@ -1154,7 +1211,7 @@ with tab3:
 
 
         # ----------------------------------------------------
-        # TABLE
+        # Ship Mode Table
         # ----------------------------------------------------
 
         st.markdown(
@@ -1165,25 +1222,25 @@ with tab3:
             mode_group.style.format(
                 {
                     "Average_Lead_Time":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Median_Lead_Time":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Lead_Time_Variability":
-                        "{:.2f}",
+                    "{:.2f}",
 
                     "Delay_Frequency_%":
-                        "{:.2f}%",
+                    "{:.2f}%",
 
                     "Average_Cost":
-                        "${:,.2f}",
+                    "${:,.2f}",
 
                     "Average_Sales":
-                        "${:,.2f}",
+                    "${:,.2f}",
 
                     "Average_Gross_Profit":
-                        "${:,.2f}"
+                    "${:,.2f}"
                 }
             ),
             use_container_width=True
@@ -1200,12 +1257,16 @@ with tab4:
         "🔎 Route Drill-Down Analysis"
     )
 
-    # Factory selector
+    # --------------------------------------------------------
+    # Factory Selector
+    # --------------------------------------------------------
 
     drill_factories = sorted(
         filtered_df[
             "Factory"
-        ].dropna().unique()
+        ]
+        .dropna()
+        .unique()
     )
 
     if len(drill_factories) == 0:
@@ -1228,12 +1289,16 @@ with tab4:
         ].copy()
 
 
-        # State selector
+        # ----------------------------------------------------
+        # State Selector
+        # ----------------------------------------------------
 
         drill_states = sorted(
             drill_df[
                 "State/Province"
-            ].dropna().unique()
+            ]
+            .dropna()
+            .unique()
         )
 
         if len(drill_states) > 0:
@@ -1252,12 +1317,16 @@ with tab4:
                 ]
 
 
-        # Ship mode selector
+        # ----------------------------------------------------
+        # Ship Mode Selector
+        # ----------------------------------------------------
 
         drill_modes = sorted(
             drill_df[
                 "Ship Mode"
-            ].dropna().unique()
+            ]
+            .dropna()
+            .unique()
         )
 
         if len(drill_modes) > 0:
@@ -1277,7 +1346,7 @@ with tab4:
 
 
         # ----------------------------------------------------
-        # DRILL-DOWN KPIs
+        # Drill-Down KPIs
         # ----------------------------------------------------
 
         if len(drill_df) > 0:
@@ -1295,11 +1364,14 @@ with tab4:
             ].median()
 
             drill_delay = (
-                drill_df["Delayed"].mean()
+                drill_df[
+                    "Delayed"
+                ].mean()
                 * 100
             )
 
             col1, col2, col3, col4 = st.columns(4)
+
 
             with col1:
 
@@ -1308,6 +1380,7 @@ with tab4:
                     f"{drill_shipments:,}"
                 )
 
+
             with col2:
 
                 st.metric(
@@ -1315,12 +1388,14 @@ with tab4:
                     f"{drill_avg:.1f} days"
                 )
 
+
             with col3:
 
                 st.metric(
                     "Median Lead Time",
                     f"{drill_median:.1f} days"
                 )
+
 
             with col4:
 
@@ -1331,7 +1406,7 @@ with tab4:
 
 
             # ------------------------------------------------
-            # LEAD TIME DISTRIBUTION
+            # Lead Time Distribution
             # ------------------------------------------------
 
             st.markdown(
@@ -1359,7 +1434,7 @@ with tab4:
 
 
             # ------------------------------------------------
-            # ORDER LEVEL DETAILS
+            # Order Level Details
             # ------------------------------------------------
 
             st.markdown(
@@ -1381,19 +1456,22 @@ with tab4:
                 "Sales",
                 "Cost",
                 "Gross Profit"
-
             ]
 
             existing_columns = [
-                c for c in available_columns
+                c
+                for c in available_columns
                 if c in drill_df.columns
             ]
 
-            order_details = drill_df[
-                existing_columns
-            ].sort_values(
-                "Shipping Lead Time",
-                ascending=False
+            order_details = (
+                drill_df[
+                    existing_columns
+                ]
+                .sort_values(
+                    "Shipping Lead Time",
+                    ascending=False
+                )
             )
 
             st.dataframe(
