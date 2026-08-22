@@ -124,9 +124,6 @@ Nassau-Candy-Logistics-Dashboard/
     └── route_drilldown.png
 ```
 
-> Replace `dataset.csv` with your actual dataset filename if it is
-> different.
-
 ## ⚙️ Installation & Usage
 
 ### 1. Clone the repository
