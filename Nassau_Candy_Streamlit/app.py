@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-
+from pathlib import Path
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -74,8 +74,6 @@ st.markdown("""
 # ============================================================
 # LOAD DATA
 # ============================================================
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 FILE_NAME = "Nassau_Candy_Final_Analytical_Dataset_Corrected.xlsx"
